@@ -36,15 +36,29 @@ jobs:
 
       - uses: android-actions/setup-android@v4
 
+      - name: Cache Android NDK
+        id: ndk-cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.ANDROID_HOME }}/ndk/${{ env.NDK_VERSION }}
+          key: ndk-${{ env.NDK_VERSION }}
+
       - name: Install Android NDK
+        if: steps.ndk-cache.outputs.cache-hit != 'true'
         run: |
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager --install "ndk;${NDK_VERSION}"
-          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+
+      - run: echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v7
         with:
           node-version: 24
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          build-root-directory: platforms/android
 
       - name: Fetch engine submodules
         if: contains(env.ENGINE, 'QUICKJS')
@@ -53,7 +67,11 @@ jobs:
 
       - name: Build Android runtime
         working-directory: platforms/android
-        run: node scripts/build.js --engine="$ENGINE" --skip-all-args
+        # Bypassing scripts/build.js so we can pass --build-cache - it only
+        # forwards a fixed set of flags (engine/host-objects/napi-module) and
+        # has no passthrough for arbitrary gradle args. This reproduces
+        # exactly what that script would invoke for HERMES, plus caching.
+        run: ./gradlew -Pengine="$ENGINE" -PuseHostObjects --build-cache
 
       - name: Push build output to orphan branch
         working-directory: platforms/android
