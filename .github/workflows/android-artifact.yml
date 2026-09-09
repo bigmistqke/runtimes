@@ -65,7 +65,7 @@ jobs:
           rm -rf /tmp/orphan && mkdir -p /tmp/orphan
           cp -R . /tmp/orphan/
           cd /tmp/orphan
-          rm -rf .git
+          rm -rf .git .github
 
           git init -q
           git config user.name "github-actions[bot]"
