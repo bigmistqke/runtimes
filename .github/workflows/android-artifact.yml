@@ -1,0 +1,69 @@
+name: Android runtime artifact
+
+on:
+  push:
+    branches: [pr-67]
+  workflow_dispatch:
+    inputs:
+      engine:
+        description: "JS engine to build (see platforms/android/scripts/build.js VALID_ENGINES)"
+        required: false
+        default: "QUICKJS_NG"
+
+permissions:
+  contents: write
+
+env:
+  ENGINE: ${{ github.event.inputs.engine || 'QUICKJS_NG' }}
+  NDK_VERSION: "27.1.12297006"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Android NDK
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager --install "ndk;${NDK_VERSION}"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Fetch engine submodules
+        working-directory: platforms/android
+        run: npm run setup
+
+      - name: Build Android runtime
+        working-directory: platforms/android
+        run: node scripts/build.js --engine="$ENGINE" --skip-all-args
+
+      - name: Push build output to orphan branch
+        working-directory: platforms/android
+        run: |
+          ENGINE_LOWER=$(echo "$ENGINE" | tr '[:upper:]' '[:lower:]')
+          BRANCH="android-artifact-$ENGINE_LOWER"
+          SHA=$(git rev-parse --short HEAD)
+
+          rm -rf /tmp/orphan && mkdir -p /tmp/orphan
+          cp -R . /tmp/orphan/
+          cd /tmp/orphan
+          rm -rf .git
+
+          git init -q
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -q -b "$BRANCH"
+          git add -A
+          git commit -q -m "Android runtime ($ENGINE) built from NativeScript/runtimes@$SHA"
+          git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          git push -f origin "$BRANCH"
