@@ -8,13 +8,16 @@ on:
       engine:
         description: "JS engine to build (see platforms/android/scripts/build.js VALID_ENGINES)"
         required: false
-        default: "QUICKJS_NG"
+        default: "HERMES"
 
 permissions:
   contents: write
 
 env:
-  ENGINE: ${{ github.event.inputs.engine || 'QUICKJS_NG' }}
+  # QUICKJS/QUICKJS_NG need vendor/quickjs/{source,source_ng} submodules that
+  # scripts/setup.js expects but aren't registered in .gitmodules on this
+  # branch yet (WIP upstream) - defaulting to Hermes until that lands.
+  ENGINE: ${{ github.event.inputs.engine || 'HERMES' }}
   NDK_VERSION: "27.1.12297006"
 
 jobs:
@@ -42,6 +45,7 @@ jobs:
           node-version: 24
 
       - name: Fetch engine submodules
+        if: contains(env.ENGINE, 'QUICKJS')
         working-directory: platforms/android
         run: npm run setup
 
