@@ -41,6 +41,8 @@ apply from: "gradle-helpers/AnalyticsCollector.gradle"
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-parcelize'
 
+def targetAbi = project.findProperty("targetAbi")
+
 def onlyX86 = project.hasProperty("onlyX86")
 if (onlyX86) {
     outLogger.withStyle(Style.Info).println "OnlyX86 build triggered."
@@ -233,7 +235,9 @@ android {
         minSdkVersion minSdkVer
         targetSdkVersion computeTargetSdkVersion()
         ndk {
-            if (onlyX86) {
+            if (targetAbi) {
+                abiFilters targetAbi
+            } else if (onlyX86) {
                 // The updated JSC only ships 64-bit libraries, so fall back to
                 // x86_64 when a single-ABI (emulator) build is requested.
                 abiFilters 'x86'
