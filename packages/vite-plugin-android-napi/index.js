@@ -2,7 +2,6 @@ import { execFileSync } from "node:child_process";
 import { existsSync, copyFileSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Plugin, ResolvedConfig } from "vite";
 
 // Builds a demo bundle (the surrounding `vite build` this plugin hooks
 // into), drops it into this repo's own Android test-app
@@ -24,50 +23,48 @@ import type { Plugin, ResolvedConfig } from "vite";
 // Consumed via this repo's root package.json (there's no real
 // npm-installable @nativescript/android-node-api yet - see
 // packages/android-node-api), subpath "./vite-plugin".
+//
+// Plain JS with JSDoc types, not TypeScript: this is imported directly
+// from vite.config.ts, which Vite's default "bundle" config loader treats
+// node_modules dependencies of as external rather than inlining - the raw
+// import survives into the config's runtime module graph, which Node's own
+// native TypeScript support then refuses to type-strip for anything it
+// resolves inside node_modules. Plain JS sidesteps that entirely.
 
 const REPO_ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const TEST_APP = join(REPO_ROOT, "platforms/android/test-app");
 const ASSETS_APP = join(TEST_APP, "app/src/main/assets/app");
 
-export interface AndroidNapiServeOptions {
-  /** File name to copy the built bundle to inside the test-app's assets dir. */
-  assetFileName?: string;
-  /** Android SDK root. No default - every machine's install differs; pass this or set $ANDROID_HOME. */
-  androidHome?: string;
-  /** Default: whatever the Android tooling itself defaults to (~/.android) if left unset, or $ANDROID_USER_HOME. */
-  androidUserHome?: string;
-  /** Default: whatever Gradle itself defaults to (~/.gradle) if left unset, or $GRADLE_USER_HOME. */
-  gradleUserHome?: string;
-  /** JDK 17+ home. No default - every machine's JDK install differs; pass this or set $JAVA_HOME. */
-  javaHome?: string;
-  /** Default: "27.1.12297006", or $NDK_VERSION. */
-  ndkVersion?: string;
-  /** Default: "HERMES", or $GL_ENGINE. */
-  glEngine?: string;
-  /** Default: read from the connected device via `adb shell getprop ro.product.cpu.abi`, or $TARGET_ABI. */
-  targetAbi?: string;
-  /** Default: the first connected device from `adb devices`, or $DEVICE_ID. */
-  deviceId?: string;
-  /** Test-app's Android package name. Default: "com.tns.testapplication". */
-  packageName?: string;
-  /** Test-app's launcher Activity, fully qualified. Default: "com.tns.NativeScriptActivity". */
-  activityName?: string;
-  /**
-   * The test-app's own stock fixture claiming the same Activity name as
-   * every demo bundle (see the closeBundle step below) - disabled by
-   * renaming, rather than deleted, so the checkout itself is never mutated
-   * beyond a file rename. Default: "MyActivity.js".
-   */
-  stockActivityFile?: string;
-}
+/**
+ * @typedef {object} AndroidNapiServeOptions
+ * @property {string} [assetFileName] File name to copy the built bundle to inside the test-app's assets dir.
+ * @property {string} [androidHome] Android SDK root. No default - every machine's install differs; pass this or set $ANDROID_HOME.
+ * @property {string} [androidUserHome] Default: whatever the Android tooling itself defaults to (~/.android) if left unset, or $ANDROID_USER_HOME.
+ * @property {string} [gradleUserHome] Default: whatever Gradle itself defaults to (~/.gradle) if left unset, or $GRADLE_USER_HOME.
+ * @property {string} [javaHome] JDK 17+ home. No default - every machine's JDK install differs; pass this or set $JAVA_HOME.
+ * @property {string} [ndkVersion] Default: "27.1.12297006", or $NDK_VERSION.
+ * @property {string} [glEngine] Default: "HERMES", or $GL_ENGINE.
+ * @property {string} [targetAbi] Default: read from the connected device via `adb shell getprop ro.product.cpu.abi`, or $TARGET_ABI.
+ * @property {string} [deviceId] Default: the first connected device from `adb devices`, or $DEVICE_ID.
+ * @property {string} [packageName] Test-app's Android package name. Default: "com.tns.testapplication".
+ * @property {string} [activityName] Test-app's launcher Activity, fully qualified. Default: "com.tns.NativeScriptActivity".
+ * @property {string} [stockActivityFile] The test-app's own stock fixture claiming the same Activity name as
+ *   every demo bundle (see the closeBundle step below) - disabled by renaming, rather than deleted, so the
+ *   checkout itself is never mutated beyond a file rename. Default: "MyActivity.js".
+ */
 
-export function androidNapiServe(options: AndroidNapiServeOptions = {}): Plugin {
+/**
+ * @param {AndroidNapiServeOptions} [options]
+ * @returns {import("vite").Plugin}
+ */
+export function androidNapiServe(options = {}) {
   const assetFileName = options.assetFileName ?? "solid-native-bundle.js";
   const packageName = options.packageName ?? "com.tns.testapplication";
   const activityName = options.activityName ?? "com.tns.NativeScriptActivity";
   const stockActivityFile = options.stockActivityFile ?? "MyActivity.js";
 
-  let config: ResolvedConfig;
+  /** @type {import("vite").ResolvedConfig} */
+  let config;
 
   return {
     name: "vite-plugin-android-napi:serve",

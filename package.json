@@ -20,7 +20,7 @@
     ".": {
       "types": "./packages/android-node-api/index.d.ts"
     },
-    "./vite-plugin": "./packages/vite-plugin-android-napi/index.ts"
+    "./vite-plugin": "./packages/vite-plugin-android-napi/index.js"
   },
   "dependencies": {
     "vite": "^8.2.2"
