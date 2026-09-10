@@ -38,6 +38,10 @@ jobs:
           node -e "
             const fs = require('fs');
             const pkg = JSON.parse(fs.readFileSync('packages/macos-node-api/package.json', 'utf8'));
+            // build_all_ios.sh (etc.) shell out to 'npm run metagen <platform>',
+            // expecting the *root* package.json to define it - which, once this
+            // script overwrites the root package.json, would otherwise vanish.
+            const monorepoRoot = JSON.parse(fs.readFileSync('package.json', 'utf8'));
             const intoSubdir = (p) => p.startsWith('./')
               ? './packages/macos-node-api/' + p.slice(2)
               : 'packages/macos-node-api/' + p;
@@ -57,6 +61,7 @@ jobs:
             pkg.scripts = {
               build: pkg.scripts.build,
               prepare: './scripts/build_all_ios.sh --no-engine --embed-metadata --macos --no-iphone --no-simulator',
+              metagen: monorepoRoot.scripts.metagen,
             };
             fs.writeFileSync('/tmp/root-package.json', JSON.stringify(pkg, null, 2) + '\n');
           "
