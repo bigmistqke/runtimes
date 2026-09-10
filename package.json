@@ -21,7 +21,7 @@
       "types": "./packages/android-node-api/index.d.ts"
     },
     "./vite-plugin": {
-      "types": "./packages/vite-plugin-android-napi/index.js",
+      "types": "./packages/vite-plugin-android-napi/index.d.ts",
       "default": "./packages/vite-plugin-android-napi/index.js"
     }
   },

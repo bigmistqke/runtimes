@@ -24,12 +24,16 @@ import { fileURLToPath } from "node:url";
 // npm-installable @nativescript/android-node-api yet - see
 // packages/android-node-api), subpath "./vite-plugin".
 //
-// Plain JS with JSDoc types, not TypeScript: this is imported directly
-// from vite.config.ts, which Vite's default "bundle" config loader treats
-// node_modules dependencies of as external rather than inlining - the raw
-// import survives into the config's runtime module graph, which Node's own
-// native TypeScript support then refuses to type-strip for anything it
-// resolves inside node_modules. Plain JS sidesteps that entirely.
+// Plain JS, not TypeScript: this is imported directly from vite.config.ts,
+// which Vite's default "bundle" config loader treats node_modules
+// dependencies of as external rather than inlining - the raw import
+// survives into the config's runtime module graph, which Node's own native
+// TypeScript support then refuses to type-strip for anything it resolves
+// inside node_modules. Plain JS sidesteps that entirely. Real types are
+// still available to consumers via the sibling index.d.ts (kept in sync by
+// hand) - TypeScript's package.json "types" condition only honors an
+// actual .d.ts, confirmed it does not pick up JSDoc from a plain .js even
+// pointed at directly.
 
 const REPO_ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const TEST_APP = join(REPO_ROOT, "platforms/android/test-app");
