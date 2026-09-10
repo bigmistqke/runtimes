@@ -1,0 +1,71 @@
+name: Verify macos-node-api git-dependency install
+
+# macos-node-api's package.json has a `prepare` script, so an ordinary
+# `npm install github:bigmistqke/runtimes#<ref>:packages/macos-node-api` git
+# dependency clones this repo and builds it in place - no orphan branch, no
+# separate publish step. This workflow proves that install actually works
+# end to end, from a clean project, on a real machine.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  XCODE_VERSION: "26.2.0"
+
+jobs:
+  verify:
+    name: npm install from a clean project
+    runs-on: macos-26
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
+        with:
+          egress-policy: audit
+      - uses: maxim-lobanov/setup-xcode@60606e260d2fc5762a71e64e74b2174e8ea3c8bd # v1.6.0
+        with:
+          xcode-version: ${{env.XCODE_VERSION}}
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: 24
+      - name: Install Python
+        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
+        with:
+          python-version: "3"
+      - name: Ensure lld/cmake are available
+        run: |
+          if ! command -v ld64.lld >/dev/null; then
+            brew list lld || brew install lld
+          fi
+          if ! command -v cmake >/dev/null; then
+            brew list cmake || brew install cmake
+          fi
+          if [ ! -x /usr/local/bin/cmake ]; then
+            sudo mkdir -p /usr/local/bin
+            sudo ln -sf "$(command -v cmake)" /usr/local/bin/cmake
+          fi
+      - name: Create a clean project depending on this commit
+        run: |
+          mkdir -p /tmp/verify-install
+          cd /tmp/verify-install
+          npm init -y >/dev/null
+          npm pkg set type=module
+          npm pkg set "dependencies.@nativescript/macos-node-api"="github:${{ github.repository }}#${{ github.sha }}:packages/macos-node-api"
+      - name: npm install (this is the thing being verified)
+        working-directory: /tmp/verify-install
+        run: npm install
+      - name: Smoke-test the installed package
+        working-directory: /tmp/verify-install
+        run: |
+          # Loading the package registers classes like NSObject onto
+          # globalThis directly (global namespace reflection) rather than as
+          # module exports - see packages/macos-node-api/index.mjs.
+          node -e "
+            import('@nativescript/macos-node-api').then(() => {
+              if (typeof globalThis.NSObject !== 'function') {
+                throw new Error('NSObject was not registered on globalThis after import');
+              }
+              console.log('OK: @nativescript/macos-node-api installed and loadable, NSObject =', globalThis.NSObject.name);
+            });
+          "
