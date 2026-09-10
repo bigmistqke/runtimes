@@ -20,7 +20,8 @@
   ],
   "scripts": {
     "test": "node ../../examples/foundation.js",
-    "build": "cd ../.. && ./scripts/build_all_react_native.sh"
+    "build": "cd ../.. && ./scripts/build_all_react_native.sh",
+    "prepare": "cd ../.. && ./scripts/build_all_ios.sh --no-engine --embed-metadata --macos --no-iphone --no-simulator"
   },
   "keywords": [
     "AppKit",
