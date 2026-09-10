@@ -1,0 +1,75 @@
+name: Sync macos-node-api-installable branch
+
+# npm's git-dependency spec doesn't honor a "#ref:subdirectory" suffix the
+# way pnpm/Yarn do (verified: it silently resolves to the repo root instead
+# of the subpackage), so packages/macos-node-api can't be installed directly
+# via `npm install github:owner/repo#ref:packages/macos-node-api`.
+#
+# Instead, this keeps a branch whose root package.json IS the
+# @nativescript/macos-node-api package (paths repointed into
+# packages/macos-node-api/), while the rest of the monorepo stays in place
+# so its `prepare` script can still run the real build. That branch is then
+# a plain `github:owner/repo#branch` dependency - no subdir, no prebuilt
+# binaries, no orphan branch: `npm install` clones this repo and builds it
+# on the installing machine.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/macos-node-api/package.json"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    name: Repoint root package.json at macos-node-api
+    runs-on: macos-26
+    permissions:
+      contents: write
+    steps:
+      - uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          fetch-depth: 0
+      - name: Build the installable branch's root package.json
+        run: |
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('packages/macos-node-api/package.json', 'utf8'));
+            const intoSubdir = (p) => p.startsWith('./')
+              ? './packages/macos-node-api/' + p.slice(2)
+              : 'packages/macos-node-api/' + p;
+            pkg.main = intoSubdir(pkg.main);
+            pkg.typings = intoSubdir(pkg.typings);
+            pkg.files = pkg.files.map(intoSubdir);
+            pkg.exports = {
+              '.': {
+                types: intoSubdir(pkg.exports['.'].types),
+                import: intoSubdir(pkg.exports['.'].import),
+                require: intoSubdir(pkg.exports['.'].require),
+              },
+              // Self-reference convention: always the real root package.json,
+              // which after this script runs IS this file - never rewritten.
+              './package.json': './package.json',
+            };
+            pkg.scripts = {
+              build: pkg.scripts.build,
+              prepare: './scripts/build_all_ios.sh --no-engine --embed-metadata --macos --no-iphone --no-simulator',
+            };
+            fs.writeFileSync('/tmp/root-package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+      - name: Push installable branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B macos-node-api-installable
+          cp /tmp/root-package.json package.json
+          git add package.json
+          if git diff --cached --quiet; then
+            echo "No change to root package.json - nothing to sync."
+            exit 0
+          fi
+          git commit -q -m "Sync root package.json from packages/macos-node-api ($(git -C . rev-parse --short main))"
+          git push -f origin macos-node-api-installable

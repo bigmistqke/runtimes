@@ -1,14 +1,17 @@
 name: Verify macos-node-api git-dependency install
 
-# macos-node-api's package.json has a `prepare` script, so an ordinary
-# `npm install github:bigmistqke/runtimes#<ref>:packages/macos-node-api` git
-# dependency clones this repo and builds it in place - no orphan branch, no
-# separate publish step. This workflow proves that install actually works
-# end to end, from a clean project, on a real machine.
+# npm's git-dependency spec does not honor a "#ref:subdirectory" suffix
+# (verified: it silently resolves to the whole repo root instead of the
+# subpackage), so this installs the macos-node-api-installable branch
+# instead - a branch whose root package.json IS the @nativescript/
+# macos-node-api package (see sync-macos-installable-branch.yml). Its
+# `prepare` script then builds it in place on install: no subdir, no
+# prebuilt binaries, no orphan branch. This workflow proves that install
+# actually works end to end, from a clean project, on a real machine.
 
 on:
   push:
-    branches: [main]
+    branches: [macos-node-api-installable]
   workflow_dispatch:
 
 env:
@@ -51,7 +54,7 @@ jobs:
           cd /tmp/verify-install
           npm init -y >/dev/null
           npm pkg set type=module
-          npm pkg set "dependencies.@nativescript/macos-node-api"="github:${{ github.repository }}#${{ github.sha }}:packages/macos-node-api"
+          npm pkg set "dependencies.@nativescript/macos-node-api"="github:${{ github.repository }}#${{ github.sha }}"
       - name: npm install (this is the thing being verified)
         working-directory: /tmp/verify-install
         run: npm install
