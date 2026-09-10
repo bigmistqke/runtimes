@@ -272,24 +272,30 @@ async function emitCrashDiagnostics(exec, args, startedAtMs) {
   console.error(formatCrashReport(crashReport.reportPath, crashReport.content));
 }
 
+// Each entry is a factory, not a plain object: it must only call
+// getSDKPath()/getSDKVersion() (which shell out to `xcrun`) for the platform
+// actually being generated. A plain object literal here would evaluate every
+// property eagerly - e.g. requesting "macos" would still probe for the
+// visionOS SDK via the `visionos` entry and fail on any Xcode install that
+// doesn't have it, even though that entry is never used.
 const sdks = {
-  macos: {
+  macos: () => ({
     path: getSDKPath("macosx"),
     frameworks: [...COMMON_FRAMEWORKS, ...MACOS_FRAMEWORKS],
     targets: {
       x86_64: "x86_64-apple-macos11.0",
       arm64: "arm64-apple-macos11.0",
     },
-  },
-  ios: {
+  }),
+  ios: () => ({
     path: getSDKPath("iphoneos"),
     frameworks: [...COMMON_FRAMEWORKS, ...IOS_FRAMEWORKS],
     targets: {
       arm64: `arm64-apple-ios${getSDKVersion("iphoneos")}`,
     },
     tnsTarget: "ios-arm64",
-  },
-  "ios-sim": {
+  }),
+  "ios-sim": () => ({
     path: getSDKPath("iphonesimulator"),
     frameworks: [...COMMON_FRAMEWORKS, ...IOS_FRAMEWORKS],
     targets: {
@@ -297,8 +303,8 @@ const sdks = {
       arm64: `arm64-apple-ios${getSDKVersion("iphonesimulator")}-simulator`,
     },
     tnsTarget: "ios-arm64_x86_64-simulator",
-  },
-  catalyst: {
+  }),
+  catalyst: () => ({
     path: getSDKPath("iphoneos"),
     frameworks: [...COMMON_FRAMEWORKS, ...MACOS_FRAMEWORKS, ...IOS_FRAMEWORKS],
     targets: {
@@ -306,32 +312,34 @@ const sdks = {
       arm64: `arm64-apple-ios${getSDKVersion("iphoneos")}-macabi`,
     },
     tnsTarget: "ios-arm64_x86_64-maccatalyst",
-  },
-  visionos: {
+  }),
+  visionos: () => ({
     path: getSDKPath("xros"),
     frameworks: [...COMMON_FRAMEWORKS],
     targets: {
       arm64: "arm64-apple-xros26.0",
     },
     tnsTarget: "xros-arm64",
-  },
-  "visionos-sim": {
+  }),
+  "visionos-sim": () => ({
     path: getSDKPath("xrsimulator"),
     frameworks: [...COMMON_FRAMEWORKS],
     targets: {
       arm64: "arm64-apple-xros26.0-simulator",
     },
     tnsTarget: "xros-arm64_x86_64-simulator",
-  },
+  }),
 };
 
 async function main() {
   const sdkName = process.argv[2] ?? "macos";
-  const sdk = sdks[sdkName];
+  const sdkFactory = sdks[sdkName];
 
-  if (!sdk) {
+  if (!sdkFactory) {
     throw new Error(`Invalid platform: ${sdkName}`);
   }
+
+  const sdk = sdkFactory();
 
   const typesDir = path.resolve(__dirname, "..", "packages", sdkName, "types");
   const metadataJsonDir = path.resolve(
