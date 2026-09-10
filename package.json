@@ -1,7 +1,7 @@
 {
-  "name": "nativescript-apple-runtime-monorepo",
+  "name": "@nativescript/android-node-api",
   "private": true,
-  "description": "Monorepo for NativeScript Apple runtimes and related packages",
+  "description": "Stand-in for a real @nativescript/android-node-api package: generated TypeScript declarations for the Android SDK, plus the Vite plugin that deploys a build into this repo's own Android test-app - see packages/android-node-api and packages/vite-plugin-android-napi.",
   "version": "0.0.0",
   "keywords": [
     "NativeScript",
@@ -16,12 +16,22 @@
     "name": "NativeScript Team",
     "email": "oss@nativescript.org"
   },
+  "exports": {
+    ".": {
+      "types": "./packages/android-node-api/index.d.ts"
+    },
+    "./vite-plugin": "./packages/vite-plugin-android-napi/index.ts"
+  },
+  "dependencies": {
+    "vite": "^8.2.2"
+  },
   "workspaces": [
     "packages/*",
     "platforms/apple/examples",
     "scripts"
   ],
   "scripts": {
+    "prepare": "node scripts/generate_android_types.js",
     "build-ios": "./scripts/build_all_ios.sh",
     "build-macos": "./scripts/build_all_macos.sh",
     "build-vision": "./scripts/build_all_vision.sh",

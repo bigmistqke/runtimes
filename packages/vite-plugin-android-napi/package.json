@@ -1,0 +1,12 @@
+{
+  "name": "vite-plugin-android-napi",
+  "private": true,
+  "type": "module",
+  "version": "0.0.0",
+  "description": "Vite plugin: deploys a build into this repo's own Android test-app (platforms/android/test-app), builds the APK, and installs/launches it on a connected device.",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "dependencies": {
+    "vite": "^8.2.2"
+  }
+}

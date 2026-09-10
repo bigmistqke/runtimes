@@ -4,5 +4,6 @@ local.properties
 .idea/modules.xml
 /out
 *.jar
+!gradle/wrapper/gradle-wrapper.jar
 /**/*.d.ts
 /jars/**/*.jar

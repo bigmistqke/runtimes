@@ -1,0 +1,11 @@
+{
+  "name": "@nativescript/android-node-api",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Generated TypeScript declarations for the Android SDK (via android-dts-generator), for use with NativeScript's Android Node-API bridge.",
+  "main": "./index.d.ts",
+  "types": "./index.d.ts",
+  "scripts": {
+    "generate": "node ../../scripts/generate_android_types.js"
+  }
+}
