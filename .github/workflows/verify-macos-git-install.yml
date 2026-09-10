@@ -55,6 +55,15 @@ jobs:
       - name: npm install (this is the thing being verified)
         working-directory: /tmp/verify-install
         run: npm install
+      - name: Debug installed package layout
+        working-directory: /tmp/verify-install
+        run: |
+          echo "--- package.json ---"
+          cat node_modules/@nativescript/macos-node-api/package.json
+          echo "--- dir listing ---"
+          ls -la node_modules/@nativescript/macos-node-api
+          echo "--- node version ---"
+          node --version
       - name: Smoke-test the installed package
         working-directory: /tmp/verify-install
         run: |
