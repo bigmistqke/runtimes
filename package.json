@@ -1,72 +1,64 @@
 {
-  "name": "nativescript-apple-runtime-monorepo",
-  "private": true,
-  "description": "Monorepo for NativeScript Apple runtimes and related packages",
-  "version": "0.0.0",
-  "keywords": [
-    "NativeScript",
-    "iOS",
-    "runtime"
-  ],
+  "name": "@nativescript/macos-node-api",
+  "version": "0.4.4",
+  "description": "An embeddable, engine-agnostic NativeScript runtime for macOS based on Node-API",
   "repository": {
     "type": "git",
-    "url": "https://github.com/NativeScript/napi-ios"
+    "url": "https://github.com/NativeScript/napi-ios.git",
+    "directory": "packages/macos-node-api"
   },
-  "author": {
-    "name": "NativeScript Team",
-    "email": "oss@nativescript.org"
-  },
-  "workspaces": [
-    "packages/*",
-    "examples",
-    "scripts"
+  "main": "packages/macos-node-api/index.js",
+  "typings": "packages/macos-node-api/index.d.ts",
+  "type": "module",
+  "files": [
+    "./packages/macos-node-api/*.d.ts",
+    "packages/macos-node-api/build/RelWithDebInfo/NativeScript.apple.node",
+    "packages/macos-node-api/index.cjs",
+    "packages/macos-node-api/index.d.ts",
+    "packages/macos-node-api/index.mjs",
+    "packages/macos-node-api/types"
   ],
   "scripts": {
-    "build-ios": "./scripts/build_all_ios.sh",
-    "build-macos": "./scripts/build_all_macos.sh",
-    "build-vision": "./scripts/build_all_vision.sh",
-    "build-visionos": "./scripts/build_all_vision.sh",
-    "build-node-api": "./scripts/build_all_react_native.sh",
-    "build-rn-turbomodule": "./scripts/build_react_native_turbomodule.sh",
-    "check:ffi-boundaries": "./scripts/check_ffi_boundaries.sh",
-    "test-rn-turbomodule": "./scripts/test_react_native_turbomodule.sh",
-    "test-rn-ffi": "./scripts/test_react_native_ffi_compat.sh",
-    "demo-rn-turbomodule": "./scripts/create_react_native_demo.sh",
-    "pack:ios": "./scripts/build_npm_ios.sh",
-    "pack:macos": "./scripts/build_npm_macos.sh",
-    "pack:visionos": "./scripts/build_npm_vision.sh",
-    "setup-ci": "./scripts/build_metadata_generator.sh",
-    "update-version": "./scripts/update_version.sh ios",
-    "update-version:ios": "./scripts/update_version.sh ios",
-    "update-version:macos": "./scripts/update_version.sh macos",
-    "update-version:visionos": "./scripts/update_version.sh visionos",
-    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
-    "version": "npm run changelog && git add CHANGELOG.md",
-    "build-libffi": "node scripts/build_libffi.js",
-    "build-metagen": "./scripts/build_metadata_generator.sh",
-    "metagen": "node scripts/metagen.js",
-    "build": "./scripts/build_nativescript.sh",
-    "build:ios": "./scripts/build_nativescript.sh --iphone --no-simulator --no-macos",
-    "build:ios-sim": "./scripts/build_nativescript.sh --no-iphone --simulator --no-macos",
-    "build:macos": "./scripts/build_nativescript.sh --macos --no-iphone --no-simulator",
-    "build:macos-cli": "./scripts/build_nativescript.sh --no-iphone --no-simulator --no-macos --macos-cli --v8",
-    "build:macos-napi": "./scripts/build_nativescript.sh --no-iphone --no-simulator --macos-napi",
-    "nsr": "./dist/nsr",
-    "test:macos": "node ./scripts/run-tests-macos.js ./build/test-results/macos-junit.xml",
-    "test:ios": "node ./scripts/run-tests-ios.js",
-    "benchmark:objc-dispatch": "node ./benchmarks/objc-dispatch/run.js"
+    "build": "cd ../.. && ./scripts/build_all_react_native.sh",
+    "prepare": "./scripts/build_all_ios.sh --no-engine --embed-metadata --macos --no-iphone --no-simulator",
+    "metagen": "node scripts/metagen.js"
   },
-  "license": "Apache-2.0",
+  "keywords": [
+    "AppKit",
+    "macOS",
+    "NativeScript"
+  ],
+  "contributors": [
+    {
+      "name": "DjDeveloperr"
+    },
+    {
+      "name": "Jamie Birch"
+    },
+    {
+      "name": "Nathan Walker"
+    },
+    {
+      "name": "Eduardo Speroni"
+    },
+    {
+      "name": "NativeScript",
+      "email": "oss@nativescript.org"
+    }
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@nativescript/objc-node-api": "^1.0.0-alpha.7"
+  },
   "devDependencies": {
-    "conventional-changelog-cli": "^2.1.1",
-    "dayjs": "^1.11.7",
-    "husky": "^9.0.11",
-    "lint-staged": "^15.2.7",
-    "semver": "^7.5.0"
+    "rimraf": "^6.0.0"
   },
-  "lint-staged": {
-    "{NativeScript,metadata-generator/src,test/runtime/fixtures}/**/*.{h,hpp,c,cpp,mm,m}": [
-      "clang-format -i"
-    ]
+  "exports": {
+    ".": {
+      "types": "./packages/macos-node-api/index.d.ts",
+      "import": "./packages/macos-node-api/index.mjs",
+      "require": "./packages/macos-node-api/index.cjs"
+    },
+    "./package.json": "./package.json"
   }
 }
