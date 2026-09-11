@@ -541,10 +541,14 @@ napi_value ObjectManager::HostObjectIndexedGet(napi_env env, napi_value host,
     try {
         // The proxy already knows the java object id + ObjectManager, so resolve
         // the backing array directly (no locked env->runtime lookup, no host probe).
-        jobject arr = proxy->instanceInfo
-                      ? (jobject) proxy->objectManager->GetJavaObjectByID(
+        // GetJavaObjectByID returns a JniLocalRef by value; its destructor deletes
+        // the local ref, so it must be bound to a named local (not cast away as a
+        // temporary) to stay alive for the GetArrayElement call below.
+        JniLocalRef arrRef = proxy->instanceInfo
+                      ? proxy->objectManager->GetJavaObjectByID(
                               proxy->instanceInfo->JavaObjectID)
-                      : nullptr;
+                      : JniLocalRef();
+        jobject arr = arrRef;
         return CallbackHandlers::GetArrayElement(env, host, index, proxy->arraySignature,
                                                  proxy->objectManager, arr);
     } catch (NativeScriptException &e) {
@@ -564,10 +568,11 @@ void ObjectManager::HostObjectIndexedSet(napi_env env, napi_value host,
                                          void *data) {
     auto *proxy = reinterpret_cast<HostObjectProxy *>(data);
     try {
-        jobject arr = proxy->instanceInfo
-                      ? (jobject) proxy->objectManager->GetJavaObjectByID(
+        JniLocalRef arrRef = proxy->instanceInfo
+                      ? proxy->objectManager->GetJavaObjectByID(
                               proxy->instanceInfo->JavaObjectID)
-                      : nullptr;
+                      : JniLocalRef();
+        jobject arr = arrRef;
         CallbackHandlers::SetArrayElement(env, host, index, proxy->arraySignature,
                                           value, proxy->objectManager, arr);
     } catch (NativeScriptException &e) {
