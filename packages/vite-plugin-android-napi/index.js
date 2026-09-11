@@ -38,6 +38,7 @@ import { fileURLToPath } from "node:url";
 const REPO_ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const TEST_APP = join(REPO_ROOT, "platforms/android/test-app");
 const ASSETS_APP = join(TEST_APP, "app/src/main/assets/app");
+const JS_PARSER = join(TEST_APP, "build-tools/jsparser");
 
 /**
  * @typedef {object} AndroidNapiServeOptions
@@ -175,6 +176,20 @@ export function androidNapiServe(options = {}) {
       const assetPath = join(ASSETS_APP, assetFileName);
       console.log(`==> Copying ${bundlePath} into ${ASSETS_APP}`);
       copyFileSync(bundlePath, assetPath);
+
+      // build-tools/jsparser (invoked by the static binding generator's
+      // runSbg Gradle task as a plain `node build-tools/jsparser/js_parser.js`
+      // subprocess, never through npm/yarn workspaces) isn't part of this
+      // repo's own workspaces list and has no install step of its own in the
+      // test-app build - only platforms/android/build.gradle's separate
+      // jsParserNPMInstall task installs it, for the full framework build
+      // this test-app-only deploy path never runs. Installed here instead,
+      // once, so a fresh checkout of just this package doesn't fail deep
+      // inside the Gradle build with "Cannot find module 'split'".
+      if (!existsSync(join(JS_PARSER, "node_modules"))) {
+        console.log("==> Installing build-tools/jsparser's own dependencies (first run)");
+        execFileSync("npm", ["install", "--omit=dev"], { cwd: JS_PARSER, env, stdio: "inherit" });
+      }
 
       console.log(`==> Building APK (engine=${GL_ENGINE}, abi=${TARGET_ABI})`);
       execFileSync(
